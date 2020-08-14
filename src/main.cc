@@ -4,10 +4,11 @@
 
 int main(int argc, char *argv[])
 {
-  PyObject *pModule, *pModuleName;
-  PyObject *pFunc, *pValue;
-
   PyObject *pSysPath, *pLibName;
+  PyObject *shop_module, *pModuleName;
+  PyObject *function, *return_value;
+  bool is_continue;
+  char choice;
 
   wchar_t *program = Py_DecodeLocale(argv[0], NULL);
   if (program == nullptr)
@@ -24,8 +25,6 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  PyRun_SimpleString("import sys;print(sys.path)\n");
-
   // Set the sys.path.
   pSysPath = PySys_GetObject("path");
   if (pSysPath == nullptr)
@@ -33,7 +32,7 @@ int main(int argc, char *argv[])
     std::cerr << "Failed to import sys\n";
   }
 
-  pLibName = PyUnicode_FromString("lib");
+  pLibName = PyUnicode_FromString("pylib");
   if (PyList_Insert(pSysPath, 0, pLibName))
   {
     std::cerr << "Error inserting program library into sys.path\n";
@@ -41,36 +40,58 @@ int main(int argc, char *argv[])
   Py_DECREF(pLibName);
 
   // Import the module.
-  pModuleName = PyUnicode_DecodeFSDefault("helloworld");
-  pModule = PyImport_Import(pModuleName);
+  pModuleName = PyUnicode_DecodeFSDefault("shop");
+  shop_module = PyImport_Import(pModuleName);
   Py_DECREF(pModuleName);
 
-  if (pModule != nullptr)
+  if (shop_module == nullptr)
   {
-    pFunc = PyObject_GetAttrString(pModule, "hello");
+    PyErr_Print();
+    std::cerr << "Failed to load \"shop\"\n";
+    return 1;
+  }
 
-    if (pFunc && PyCallable_Check(pFunc))
+  is_continue = true;
+  do
+  {
+    function = PyObject_GetAttrString(shop_module, "show_items");
+    if (function && PyCallable_Check(function))
     {
-      pValue = PyObject_CallObject(pFunc, nullptr);
-      Py_DECREF(pValue);
+      return_value = PyObject_CallObject(function, nullptr);
+      Py_DECREF(return_value);
     }
     else
     {
       if (PyErr_Occurred())
         PyErr_Print();
-      std::cerr << "Cannot find function \"hello\"\n";
+      std::cerr << "Cannot find function \"show_items\"";
     }
-    Py_XDECREF(pFunc);
-    Py_DECREF(pModule);
-  }
-  else
-  {
-    PyErr_Print();
-    std::cerr << "Failed to load \"helloworld\"\n";
-    return 1;
-  }
 
-  PyRun_SimpleString("import sys;print(sys.path)\n");
+    std::cout << "Select the item you want (W, L, S or q to exit): ";
+    std::cin >> choice;
+
+    if (choice == 'q')
+    {
+      is_continue = false;
+    }
+    else if (choice == 'W')
+    {
+    }
+    else if (choice == 'L')
+    {
+    }
+    else if (choice == 'S')
+    {
+    }
+    else
+    {
+      // Invalid choice.
+    }
+
+  } while (is_continue);
+
+  Py_XDECREF(function);
+  Py_DECREF(shop_module);
 
   if (Py_FinalizeEx() < 0)
   {
