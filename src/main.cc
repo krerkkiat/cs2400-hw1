@@ -6,9 +6,10 @@ int main(int argc, char *argv[])
 {
   PyObject *pSysPath, *pLibName;
   PyObject *shop_module, *pModuleName;
-  PyObject *function, *return_value;
-  bool is_continue;
-  char choice;
+  PyObject *function, *return_value, *func_args;
+  char choice, hard_drive_type;
+  int amount;
+  int is_ohio_resident = false;
 
   wchar_t *program = Py_DecodeLocale(argv[0], NULL);
   if (program == nullptr)
@@ -51,7 +52,6 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  is_continue = true;
   do
   {
     function = PyObject_GetAttrString(shop_module, "show_items");
@@ -66,29 +66,63 @@ int main(int argc, char *argv[])
         PyErr_Print();
       std::cerr << "Cannot find function \"show_items\"";
     }
+    Py_XDECREF(function);
 
     std::cout << "Select the item you want (W, L, S or q to exit): ";
     std::cin >> choice;
 
+    while (choice != 'W' && choice != 'L' && choice != 'S' && choice != 'q')
+    {
+      std::cout << "Select the item you want (W, L, S or q to exit): ";
+      std::cin >> choice;
+    }
+
     if (choice == 'q')
     {
-      is_continue = false;
+      break;
     }
     else if (choice == 'W')
     {
+      std::cout << "How many do you want?: ";
+      std::cin >> amount;
     }
     else if (choice == 'L')
     {
+      std::cout << "How many do you want?: ";
+      std::cin >> amount;
     }
     else if (choice == 'S')
     {
+      std::cout << "How many do you want?: ";
+      std::cin >> amount;
+    }
+    hard_drive_type = choice;
+
+    std::cout << "Are you Ohio resident? (y/n): ";
+    std::cin >> choice;
+    while (choice != 'y' && choice != 'Y' && choice != 'n' && choice != 'N')
+    {
+      std::cout << "Are you Ohio resident? (y/n): ";
+      std::cin >> choice;
+    }
+    if (choice == 'y' || choice == 'Y')
+    {
+      is_ohio_resident = 1;
     }
     else
     {
-      // Invalid choice.
+      is_ohio_resident = 0;
     }
 
-  } while (is_continue);
+    function = PyObject_GetAttrString(shop_module, "place_order");
+    if (function && PyCallable_Check(function))
+    {
+      func_args = Py_BuildValue("(Cii)", hard_drive_type, amount, is_ohio_resident);
+      return_value = PyObject_CallObject(function, func_args);
+      Py_DECREF(return_value);
+    }
+    Py_XDECREF(function);
+  } while (true);
 
   Py_XDECREF(function);
   Py_DECREF(shop_module);
